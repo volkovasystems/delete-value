@@ -59,7 +59,8 @@
 	@include:
 		{			
 			"util@nodejs": "util",
-			"mongoose@npm": "mongoose"
+			"mongoose@npm": "mongoose",
+			"resolve-query-condition@github.com/volkovasystems": "resolveQueryCondition"
 		}
 	@end-include
 */
@@ -77,32 +78,9 @@ var deleteValue = function deleteValue( condition, collectionName, databaseName,
 		@end-meta-configuration
 	*/
 
-	var conditionList = condition.split( "@" );
-	var dataSchema = conditionList[ 0 ];
-	if( dataSchema == condition ){
-		dataSchema = collectionName;
-
-	}else{
-		condition = conditionList[ 1 ];
-	}
-
-	conditionList = condition.split( "=" );
-	var queryKey = conditionList[ 0 ];
-	if( queryKey == condition ){
-		var error = new Error( "invalid query key" );
-		console.error( error );
-		callback( error );
-
-	}else{
-		condition = conditionList[ 1 ];
-	}
-
-	if( !condition ){
-		var error = new Error( "invalid condition value" );
-		console.error( error );
-		callback( error );
-	}
-	var conditionValue = condition;
+	var queryCondition = resolveQueryCondition( condition );
+	var dataSchema = queryCondition.reference;
+	var queryObject = queryCondition.queryObject;
 
 	//NOOP override.
 	callback = callback || function( ){ };
@@ -121,9 +99,6 @@ var deleteValue = function deleteValue( condition, collectionName, databaseName,
 			//Check if we have the model in the list of models.
 			if( connection.modelNames( ).indexOf( dataSchema ) != -1 ){
 				var dataModel = mongoose.model( dataSchema, collectionName );
-				
-				var queryObject = { };
-				queryObject[ queryKey ] = conditionValue;
 
 				dataModel.remove( queryObject,
 					function onRemoved( error ){
@@ -154,6 +129,7 @@ var deleteValue = function deleteValue( condition, collectionName, databaseName,
 };
 
 var mongoose = require( "mongoose" );
+var resolveQueryCondition = require( "./resolve-query-condition/resolve-query-condition.js" );
 
 module.exports = deleteValue;
 
